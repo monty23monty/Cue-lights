@@ -1,0 +1,150 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+  </head>
+
+  <body class="ready-check">
+    <div class="container-ready">
+      <div class="nav">
+        <input type="checkbox" id="nav-check" />
+        <div class="nav-header">
+          <div class="nav-title">{{ username }}</div>
+        </div>
+        <div class="nav-btn">
+          <label for="nav-check">
+            <span></span>
+            <span></span>
+            <span></span>
+          </label>
+        </div>
+        <div class="nav-links">
+          <a href="/rooms/create">New Game</a>
+          <a href="/logout">Logout</a>
+        </div>
+      </div>
+      <div class="buttons">
+        <button id="btnGo">Go</button>
+        <button id="btnNOGO">No Go</button>
+      </div>
+      <div class="ready">
+        <h1>Ready</h1>
+        <ul id="userStatusListReady"></ul>
+      </div>
+      <div class="not-ready">
+        <h1>Not Ready</h1>
+        <ul id="userStatusListNotReady">
+            
+        </ul>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
+    <script>
+      var socket = io();
+      // Event handler for successful connection
+      socket.on("connect", function () {
+        console.log("Connected to server.");
+      });
+      const questionTextElement = document.getElementById("questionText");
+      const userAnswerElement = document.getElementById("inp");
+      const submitAnswerBtn = document.getElementById("buttons");
+      const userId = "{{ user_id }}";
+
+      // Join a room
+      console.log("Joining room:", "{{ room.code }}"); // Add this line for debugging
+      socket.emit("join_room", {
+        room_code: "{{ room.code }}",
+        room_id: "{{ room.id }}", // Room ID is obtained from the server-side Flask variable
+      });
+      // Event handler to redirect to ready_check.html
+      socket.on("redirect_to_ready_check", function (data) {
+        window.location.href = data.url;
+      });
+      // Event handler to update user status in real-time
+      socket.on("update_user_status_not_ready", function (data) {
+        console.log("Received update_user_status_not_ready event:", data); // Added for debugging
+
+        // Update the list of users who are not ready
+        const userStatusListNotReady = document.getElementById(
+          "userStatusListNotReady"
+        );
+        userStatusListNotReady.innerHTML = "";
+        for (const user of data.users) {
+          const userStatusElement = document.createElement("li");
+          userStatusElement.textContent = user.username;
+          userStatusListNotReady.appendChild(userStatusElement);
+        }
+      });
+
+      socket.on("update_user_status_ready", function (data) {
+        console.log("Received update_user_status_ready event:", data); // Added for debugging
+
+        // Update the list of users who are ready
+        const userStatusListReady = document.getElementById(
+          "userStatusListReady"
+        );
+        userStatusListReady.innerHTML = "";
+        for (const user of data.users) {
+          const userStatusElement = document.createElement("li");
+          userStatusElement.textContent = user.username;
+          userStatusListReady.appendChild(userStatusElement);
+        }
+      });
+
+      // Event handlers for the "Ready" and "Not Ready" buttons
+      document
+        .getElementById("btnReady")
+        .addEventListener("click", function () {
+          socket.emit("user_ready_status", {
+            status: "Ready",
+            room_code: "<room_code>",
+          });
+        });
+
+      document
+        .getElementById("btnNotReady")
+        .addEventListener("click", function () {
+          socket.emit("user_ready_status", {
+            status: "Not Ready",
+            room_code: "<room_code>",
+          });
+        });
+
+      // Event handler for disconnection
+      socket.on("disconnect", function () {
+        console.log("Disconnected from server.");
+      });
+
+      // Event handler for updates to the list of connected users
+      socket.on("connected_users_update", function (data) {
+        console.log("Received connected_users_update event:", data); // Added for debugging
+
+        console.log("Updated list of connected users:", data.users);
+      });
+      socket.on("redirect_to_game", function (data) {
+        window.location.href = data.url;
+      });
+      // Listen for the 'send_question' event from the server
+      socket.on("send_question", function (data) {
+        // Display the received question
+        questionTextElement.textContent = data.question;
+      });
+
+      // Handle the answer submission
+      submitAnswerBtn.addEventListener("click", function () {
+        const answer = userAnswerElement.value;
+        if (answer) {
+          socket.emit("submit_answer", { answer: answer, user_id: userId });
+        } else {
+          alert("Please enter your answer before submitting.");
+        }
+      });
+
+      // Event handler for errors
+      socket.on("error", function (data) {
+        console.log("Error:", data.message);
+      });
+    </script>
+    <script></script>
+  </body>
+</html>

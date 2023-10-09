@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/index.css') }}"
+    />
+    <title>Create a Room</title>
+  </head>
+
+  <body
+    style="
+      font-family: sans-serif;
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      background-color: #04D589;
+      font-family: 'poppins';
+      position: relative;
+    "
+  >
+    <div class="container">
+      <div class="nav">
+        <input type="checkbox" id="nav-check" />
+        <div class="nav-header">
+          <div class="nav-title">{{ username }}</div>
+        </div>
+        <div class="nav-btn">
+          <label for="nav-check">
+            <span></span>
+            <span></span>
+            <span></span>
+          </label>
+        </div>
+        <div class="nav-links">
+          <a href="{{ url_for('home') }}">Home</a>
+          <a href="{{ url_for('room_create') }}">New Game</a>
+          <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+      </div>
+      <div class="rooms-list">
+        <div class="create-room-form-box">
+          <form method="GET" onsubmit="return updateFormAction();" action="#">
+            <h1>Join a Room</h1>
+            <div class="inputbox">
+                <input type="text" id="code" name="code" required />
+                <label for="code">Room Code:</label>
+            </div>
+            <button type="submit" class="form-submit">Join Room</button>
+        </form>
+        
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+      function updateFormAction() {
+          // Get the value from the code input field
+          var codeValue = document.getElementById("code").value;
+      
+          // Update the form action with the new URL
+          var form = document.querySelector("form");
+          form.action = "{{ url_for('room_detail', code='_CODE_') }}".replace('_CODE_', codeValue);
+      
+          return true; // This will allow the form to be submitted
+      }
+      </script>
+      
+  </body>
+</html>

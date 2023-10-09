@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- saved from url=(0093)https://eu.pythonanywhere.com/user/19roberl/files/home/19roberl/music_app/templates/home.html -->
+<html lang="en" class="hydrated">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style data-styles="">
+      ion-icon {
+        visibility: hidden;
+      }
+      .hydrated {
+        visibility: inherit;
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/index.css') }}"
+    />
+
+    <!--link rel="stylesheet" type="text/css" href="index.css" /-->
+    <title>Homepage</title>
+    <style type="text/css">
+      @font-face {
+        font-family: Gilroy;
+        font-style: normal;
+        font-weight: 100 400;
+        src: url(https://pouch-global-font-assets.s3.eu-central-1.amazonaws.com/Gilroy-Medium.otf);
+      }
+      @font-face {
+        font-family: Gilroy;
+        font-style: normal;
+        font-weight: 500 900;
+        src: url(https://pouch-global-font-assets.s3.eu-central-1.amazonaws.com/Gilroy-Bold.otf);
+      }
+      @font-face {
+        font-family: "Font Awesome 5 Free";
+        font-style: normal;
+        font-weight: 900;
+        src: url(https://use.fontawesome.com/releases/v5.6.3/webfonts/fa-solid-900.woff2)
+          format("woff2");
+      }
+      @font-face {
+        font-family: "Font Awesome 5 Brands";
+        font-style: normal;
+        font-weight: normal;
+        src: url(https://use.fontawesome.com/releases/v5.6.3/webfonts/fa-brands-400.woff2)
+          format("woff2");
+      }
+    </style>
+  </head>
+  <body style="font-family: sans-serif;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background-color: #f0f0f0;
+  font-family: 'poppins';
+  position: relative;">
+    <div class="container">
+      <div class="nav">
+        <input type="checkbox" id="nav-check" />
+        <div class="nav-header">
+          <div class="nav-title">{{ username }}</div>
+        </div>
+        <div class="nav-btn">
+          <label for="nav-check">
+            <span></span>
+            <span></span>
+            <span></span>
+          </label>
+        </div>
+        <div class="nav-links">
+          <a href="{{ url_for('room') }}">Join Show</a>
+          <a href="{{ url_for('room_create') }}">New Show</a>
+          <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        
+      </div>
+      <div class="Rooms-list">
+        <h1>Not in show</h1>
+        {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class="flashes">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+            <li id="userList"></li>
+      </div>
+    </div>
+    <!-- ... -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+      var socket = io();
+
+      // Event handler for successful connection
+      socket.on("connect", function () {
+        console.log("Connected to server.");
+      });
+
+      // Event handler for disconnection
+      socket.on("disconnect", function () {
+        console.log("Disconnected from server.");
+      });
+
+      // Event handler for errors
+      socket.on("error", function (data) {
+        console.log("Error:", data.message);
+      });
+
+      // Function to join a room
+      function joinRoom(roomId) {
+        socket.emit("join_room", { room_id: roomId });
+      }
+
+      // Add click event listeners to the room buttons
+      var roomButtons = document.getElementsByClassName("roomButton");
+      for (var i = 0; i < roomButtons.length; i++) {
+        roomButtons[i].addEventListener("click", function () {
+          var roomId = this.getAttribute("data-room-id");
+          joinRoom(roomId);
+        });
+      }
+    </script>
+  </body>
+
+  <script type="module" src="./home_files/ionicons.esm.js.download"></script>
+  <script nomodule="" src="./home_files/ionicons.js.download"></script>
+</html>
