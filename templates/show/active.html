@@ -2,7 +2,7 @@
   <head>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/index.css') }}"
+      href="{{  url_for('static', filename='css/index.css')  }}"
     />
   </head>
 
@@ -30,22 +30,11 @@
           <a href="/logout">Logout</a>
         </div>
       </div>
-      <div class="buttons">
-        <button id="btnGo">Go</button>
-        <button id="btnNOGO">No Go</button>
-      </div>
-      <div class="ready">
-        <h1>Ready</h1>
-        <ul id="userStatusListReady"></ul>
-      </div>
-      <div class="not-ready">
-        <h1>Not Ready</h1>
-        <ul id="userStatusListNotReady"></ul>
+      <div class="cue-light">
       </div>
     </div>
 
     <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
-    <!-- Script from scripts folder-->
     <script>
       var socket = io();
       // Event handler for successful connection
@@ -63,38 +52,6 @@
         room_code: "{{ room.code }}",
         room_id: "{{ room.id }}", // Room ID is obtained from the server-side Flask variable
       });
-      // Event handler to redirect to ready_check.html
-      socket.on("redirect_to_ready_check", function (data) {
-        window.location.href = data.url;
-      });
-      //debug user update event
-      socket.on("update_user_status", function (data) {
-        console.log("Received update_user_status event:", data);
-        console.log("ready_users:", data.ready_users);
-        console.log("users_not_ready:", data.not_ready_users);
-
-        // Update the list of users who are ready
-        const userStatusListReady = document.getElementById(
-          "userStatusListReady"
-        );
-        userStatusListReady.innerHTML = "";
-        for (const user of data.ready_users) {
-          const li = document.createElement("li");
-          li.appendChild(document.createTextNode(user));
-          userStatusListReady.appendChild(li);
-        }
-        // Update the list of users who are not ready
-        const userStatusListNotReady = document.getElementById(
-          "userStatusListNotReady"
-        );
-        userStatusListNotReady.innerHTML = "";
-        for (const user of data.not_ready_users) {
-          const li = document.createElement("li");
-          li.appendChild(document.createTextNode(user));
-          userStatusListNotReady.appendChild(li);
-        }
-
-      });
 
       // Event handler for disconnection
       socket.on("disconnect", function () {
@@ -107,33 +64,28 @@
 
         console.log("Updated list of connected users:", data.users);
       });
-      
 
-      // go
-      const btnGo = document.getElementById("btnGo");
-
-      btnGo.addEventListener("click", function () {
-        console.log("Go clicked");
-        console.log("Emitting start_show event");
-        console.log("with data:", {
-          user_id: userId,
-          room_code: "{{ room.code }}",
-        });
-        socket.emit("start_show", {
-          user_id: userId,
-          room_code: "{{ room.code }}",
-        });
+      // Event handler for updating lights, changes background colour of cue light, colour is sent as a hex code, needs to only update if user ID is the same as th user id on client side
+      socket.on("lights_updated", function (data) {
+        console.log("Received update_lights event:", data); // Added for debugging
+        console.log("User ID:", {{ user_id }});
+        if ({{  user_id  }} == data.user_id) {
+          console.log("Colour", data.colour);
+          document.body.style.backgroundColor = data.colour;
+        }
       });
 
-      socket.on("error", function (data) {
-        console.log("Error:", data.message);
-      });
       //event handler for redirecting to show page
       socket.on("start_show", function (data) {
         window.location.href = data.url;
       });
       socket.on("redirect_to_active", function (data) {
         window.location.href = data.url;
+      });
+
+      // Event handler for errors
+      socket.on("error", function (data) {
+        console.log("Error:", data.message);
       });
     </script>
   </body>

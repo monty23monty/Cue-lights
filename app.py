@@ -11,7 +11,7 @@ from random import randint
 import eventlet
 import time
 import pandas as pd
-
+from flask_migrate import Migrate
 
 db = SQLAlchemy()
 app = Flask(__name__)
@@ -19,6 +19,8 @@ socketio = SocketIO(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///project.db"
 app.config["SECRET_KEY"] = "vT1$n&8iD4gY7oR2cVbN9LmK3jX6zQ5wM0hA8sE4fB7pZ2xW6uJ1"
 db.init_app(app)
+migrate = Migrate(app, db)
+
 
 # Import the association table
 users_rooms = db.Table('users_rooms',
@@ -45,6 +47,7 @@ class User(db.Model):
     password = db.Column(db.String(120))
     readiness = db.Column(db.String(10), default='Not Ready')
     code = db.Column(db.String(10), nullable=True)
+    light_status = db.Column(db.String(10), default='off')
 
     def __init__(self, username, password, code):
         self.username = username
@@ -57,10 +60,8 @@ class User(db.Model):
     def __repr__(self):
         return "<User %r>" % self.username
 
-
 with app.app_context():
     db.create_all()
-
 
 
 @app.route("/")
@@ -222,7 +223,10 @@ def ready_check(code):
 @app.route('/show/active/<code>')
 def active(code):
     room = Room.query.filter_by(code=code).first()
-    return render_template("show/active.html", room=room)
+    user = User.query.get(session["user_id"])
+    if user.id != room.creator_id:
+        return render_template("show/active.html", room=room, user_id=user.id)
+    return render_template("show/active_creator.html", room=room)
 
 
 @socketio.on('user_ready_status')
@@ -327,12 +331,20 @@ def handle_leave_room_event(data):
     user = User.query.get(user_id)
 
     if room and user and user in room.connected_users:
-        room.connected_users.remove(user)
-        db.session.commit()
+        #check if leaving user is host
+        if user_id == room.creator_id:
+            #if host, delete room
+            db.session.delete(room)
+            db.session.commit()
+            print(f"User {user_id} deleted room {room_code}")
+        else:
+            #if not host, remove user from room
+            room.connected_users.remove(user)
+            db.session.commit()
 
-        connected_users = [u.username for u in room.connected_users]
-        print(f"Emitting connected_users_update for room {room_code} with users {connected_users}")
-        socketio.emit("connected_users_update", {"users": connected_users}, room=room_code)
+            connected_users = [u.username for u in room.connected_users]
+            print(f"Emitting connected_users_update for room {room_code} with users {connected_users}")
+            socketio.emit("connected_users_update", {"users": connected_users}, room=room_code)
         
         emit("left_room", {}, room=request.sid)
 
@@ -354,7 +366,7 @@ def handle_user_ready_status(data):
         # Broadcasting the updated readiness status
         ready_users = [u.username for u in room.connected_users if u.readiness == "Ready"]
         not_ready_users = [u.username for u in room.connected_users if u.readiness == "Not Ready"]
-        print(f"Emitting update_user_status event. ready_users: {ready_users}, not_ready_users: {not_ready_users}")
+        print(f"Emitting update_user_status event. ready_users: {ready_users}, not_ready_users: {not_ready_users}, in room: {room_code}")
         socketio.emit("update_user_status", {"ready_users": ready_users, "not_ready_users": not_ready_users}, room=room_code)
 
 @socketio.on("start_show")
@@ -365,9 +377,26 @@ def handle_start_show(data):
     user = User.query.get(user_id)
     url = url_for('active', code=room_code)
     print("Received start_show event with data:", data, url)
+    #sends url and the user id in redirect
     if room and user:
-        emit("redirect_to_active", {"url": url}, room=room_code)
+        print(f"User {user_id} is starting show in room {room_code}")
+        emit("redirect_to_show", {"url": url, "user_id": user_id}, room=room_code)
 
+
+@socketio.on("update_lights")
+#takes data from the host and updates all lights for users in the room
+def update_lights(data):
+    room_code = data["room_code"]
+    user_id = session["user_id"]
+    room = Room.query.filter_by(code=room_code).first()
+    user = User.query.get(user_id)
+    print("Received update_lights event with data:", data)
+    if room and user:
+        print(f"User {user_id} is updating lights in room {room_code}")
+        for user in room.connected_users:
+            user.light_status = data["light_status"]
+            db.session.commit()
+        emit("lights_updated", {"light_status": data["light_status"]}, room=room_code)
 
 if __name__ == "__main__":
     eventlet.wsgi.server(eventlet.listen(("192.168.86.94", 5000)), app)

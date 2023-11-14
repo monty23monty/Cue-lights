@@ -21,8 +21,14 @@
           </label>
         </div>
         <div class="nav-links">
+          <a
+            href="#"
+            onclick="handleLeaveShow('{{ room.code }}', '{{ room.id }}')"
+            >Leave Show</a
+          >
           <a href="/rooms/create">New Game</a>
           <a href="/logout">Logout</a>
+          
         </div>
       </div>
       <div class="buttons">
@@ -93,6 +99,10 @@
       socket.on("start_show", function (data) {
         window.location.href = data.url;
       });
+      socket.on("redirect_to_active", function(data) {
+        //sends user id as data to data.url and shows user that page
+        window.location.href = data.url;
+      })
 
       // Event handler for errors
       socket.on("error", function (data) {

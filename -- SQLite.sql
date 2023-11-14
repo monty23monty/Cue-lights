@@ -1,1 +1,1 @@
-DELETE FROM Room
+SELECT * FROM Room
