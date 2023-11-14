@@ -19,7 +19,6 @@ socketio = SocketIO(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///project.db"
 app.config["SECRET_KEY"] = "vT1$n&8iD4gY7oR2cVbN9LmK3jX6zQ5wM0hA8sE4fB7pZ2xW6uJ1"
 db.init_app(app)
-    
 
 # Import the association table
 users_rooms = db.Table('users_rooms',
@@ -44,6 +43,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(120))
+    readiness = db.Column(db.String(10), default='Not Ready')
     code = db.Column(db.String(10), nullable=True)
 
     def __init__(self, username, password, code):
@@ -60,7 +60,6 @@ class User(db.Model):
 
 with app.app_context():
     db.create_all()
-
 
 
 
@@ -194,7 +193,6 @@ def start_game(code):
 def room():
     return render_template("room/join.html")
 
-
 @socketio.on('ready_check')
 def handle_ready_check(data):
     room_code = data['room_code']
@@ -204,6 +202,8 @@ def handle_ready_check(data):
 
 @app.route('/show/ready_check_creator/<code>')
 def ready_check_creator(code):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
     user_id = session["user_id"]
     room = Room.query.filter_by(creator_id=user_id).first()
 
@@ -219,6 +219,11 @@ def ready_check(code):
     room = Room.query.filter_by(code=code).first()
     return render_template("show/ready_check.html", room=room)
 
+@app.route('/show/active/<code>')
+def active(code):
+    room = Room.query.filter_by(code=code).first()
+    return render_template("show/active.html", room=room)
+
 
 @socketio.on('user_ready_status')
 def handle_user_ready_status(data):
@@ -229,11 +234,7 @@ def handle_user_ready_status(data):
     user = User.query.get(user_id)
     print(f"User {user_id} is {user_status} in room {room_code}")
 
-    if user_status == 'Ready':
-        emit('update_user_status_ready', {'username': user.username, 'status': user_status}, room=room_code)
-    else:
-        emit('update_user_status_not_ready', {'username': user.username, 'status': user_status}, room=room_code)
-
+    socketio.emit('update_ready_status', {'user_id': user_id, 'status': user_status}, room=room_code)
 
 @socketio.on("join_room")
 def handle_join_room(data):
@@ -335,20 +336,39 @@ def handle_leave_room_event(data):
         
         emit("left_room", {}, room=request.sid)
 
-#Cue light logic
-#Displays the cue light for the user
-@socketio.on("cue_light")
-def handle_cue_light(data):
-    room_code = data["room_code"]
+@socketio.on("user_ready_status")
+def handle_user_ready_status(data):
     user_id = session["user_id"]
+    room_code = data["room_code"]
+    status = data["status"]
+    print("Received user_ready_status event with data:", data)
+
     user = User.query.get(user_id)
     room = Room.query.filter_by(code=room_code).first()
-    if room and user:
-        emit("cue_light", {"user_id": user_id}, room=room_code)
-        
 
+    if user and room:
+        user.readiness = status
+        db.session.commit()
+        print(f"User {user_id} is {status} in room {room_code}")
+
+        # Broadcasting the updated readiness status
+        ready_users = [u.username for u in room.connected_users if u.readiness == "Ready"]
+        not_ready_users = [u.username for u in room.connected_users if u.readiness == "Not Ready"]
+        print(f"Emitting update_user_status event. ready_users: {ready_users}, not_ready_users: {not_ready_users}")
+        socketio.emit("update_user_status", {"ready_users": ready_users, "not_ready_users": not_ready_users}, room=room_code)
+
+@socketio.on("start_show")
+def handle_start_show(data):
+    room_code = data["room_code"]
+    user_id = session["user_id"]
+    room = Room.query.filter_by(code=room_code).first()
+    user = User.query.get(user_id)
+    url = url_for('active', code=room_code)
+    print("Received start_show event with data:", data, url)
+    if room and user:
+        emit("redirect_to_active", {"url": url}, room=room_code)
 
 
 if __name__ == "__main__":
-    eventlet.wsgi.server(eventlet.listen(("192.168.86.228", 5000)), app)
+    eventlet.wsgi.server(eventlet.listen(("192.168.86.94", 5000)), app)
     socketio.run(app)

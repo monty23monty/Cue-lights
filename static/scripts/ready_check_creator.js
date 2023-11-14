@@ -1,48 +1,4 @@
-<html>
-  <head>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/index.css') }}"
-    />
-  </head>
-
-  <body class="ready-check">
-    <div class="container-ready">
-      <div class="nav">
-        <input type="checkbox" id="nav-check" />
-        <div class="nav-header">
-          <div class="nav-title">{{ username }}</div>
-        </div>
-        <div class="nav-btn">
-          <label for="nav-check">
-            <span></span>
-            <span></span>
-            <span></span>
-          </label>
-        </div>
-        <div class="nav-links">
-          <a href="/rooms/create">New Game</a>
-          <a href="/logout">Logout</a>
-        </div>
-      </div>
-      <div class="buttons">
-        <button id="btnGo">Go</button>
-        <button id="btnNOGO">No Go</button>
-      </div>
-      <div class="ready">
-        <h1>Ready</h1>
-        <ul id="userStatusListReady"></ul>
-      </div>
-      <div class="not-ready">
-        <h1>Not Ready</h1>
-        <ul id="userStatusListNotReady"></ul>
-      </div>
-    </div>
-
-    <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
-    <!-- Script from scripts folder-->
-    <script>
-      var socket = io();
+var socket = io();
       // Event handler for successful connection
       socket.on("connect", function () {
         console.log("Connected to server.");
@@ -104,7 +60,7 @@
 
         console.log("Updated list of connected users:", data.users);
       });
-      // Event handler to update user readiness lists based on the broadcasted user status
+      // Event handler to update user readiness lists based on the broadcasted status using the data in app.py
       socket.on("update_user_status", function (data) {
         console.log("Received update_user_status event:", data); // Added for debugging
 
@@ -129,18 +85,16 @@
           userStatusElement.textContent = user.username;
           userStatusListReady.appendChild(userStatusElement);
         }
-      });
-      
+    });
+    // go
+    const btnGo = document.getElementById("btnGo");
 
-      // go
-      const btnGo = document.getElementById("btnGo");
-
-      btnGo.addEventListener("click", function () {
-        socket.emit("start_show", {
-          user_id: userId,
-          room_id: "{{ room.id }}",
-        });
-      });
+btnGo.addEventListener("click", function () {
+  socket.emit("start_show", {
+    user_id: userId,
+    room_id: "{{ room.id }}",
+  });
+});
 
       socket.on("error", function (data) {
         console.log("Error:", data.message);
@@ -149,6 +103,3 @@
       socket.on("start_show", function (data) {
         window.location.href = data.url;
       });
-    </script>
-  </body>
-</html>
