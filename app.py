@@ -212,7 +212,7 @@ def ready_check_creator(code):
         flash("Error: Room not found!")
         return redirect(url_for("home"))
 
-    return render_template("show/ready_check_creator.html", room=room)
+    return render_template("show/ready_check_creator.html", room=room, user_id=user_id)
 
 
 @app.route('/show/ready_check/<code>')
@@ -224,10 +224,17 @@ def ready_check(code):
 def active(code):
     room = Room.query.filter_by(code=code).first()
     user = User.query.get(session["user_id"])
-    if user.id != room.creator_id:
-        return render_template("show/active.html", room=room, user_id=user.id)
-    return render_template("show/active_creator.html", room=room)
+    #set all users to have the light colour black
+    for user in room.connected_users:
+        user.light_status = "#000000"
+        db.session.commit()
+    return render_template("show/active.html", room=room, user_id=user.id, username=user.username)
 
+@app.route('/show/active/<code>/host')
+def active_host(code):
+    room = Room.query.filter_by(code=code).first()
+    user = User.query.get(session["user_id"])
+    return render_template("show/active_creator.html", room=room, username=user.username)
 
 @socketio.on('user_ready_status')
 def handle_user_ready_status(data):
@@ -380,7 +387,7 @@ def handle_start_show(data):
     #sends url and the user id in redirect
     if room and user:
         print(f"User {user_id} is starting show in room {room_code}")
-        emit("redirect_to_show", {"url": url, "user_id": user_id}, room=room_code)
+        emit("redirect_to_active", {"url": url, "user_id": user_id}, room=room_code)
 
 
 @socketio.on("update_lights")
@@ -397,6 +404,35 @@ def update_lights(data):
             user.light_status = data["light_status"]
             db.session.commit()
         emit("lights_updated", {"light_status": data["light_status"]}, room=room_code)
+
+@socketio.on("fetch_light_status")
+def fetch_light_status(data):
+    room_code = data["room_code"]
+    user_id = session["user_id"]
+    room = Room.query.filter_by(code=room_code).first()
+    user = User.query.get(user_id)
+    #return the data in the format: {"users": {"user_id": {"username": "username", "light_status": "#ffffff"}}}
+    print("Received fetch_light_status event with data:", data)
+    if room and user:
+        print(f"User {user_id} is fetching light status in room {room_code}")
+        users = {}
+        for user in room.connected_users:
+            users[user.id] = {"username": user.username, "light_status": user.light_status}
+        emit("light_status_fetched", {"users": users}, room=room_code)
+
+@socketio.on("update_light_status")
+def update_light_status(data):
+    room_code = data["room_code"]
+    user_id = session["user_id"]
+    room = Room.query.filter_by(code=room_code).first()
+    user = User.query.get(user_id)
+    print("Received update_light_status event with data:", data)
+    if room and user:
+        print(f"User {user_id} is updating light status in room {room_code}")
+        user.light_status = data["light_status"]
+        db.session.commit()
+        emit("light_status_updated", {"user_id": user_id, "light_status": data["light_status"]}, room=room_code)
+
 
 if __name__ == "__main__":
     eventlet.wsgi.server(eventlet.listen(("192.168.86.94", 5000)), app)

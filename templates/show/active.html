@@ -57,6 +57,7 @@
       socket.on("disconnect", function () {
         console.log("Disconnected from server.");
       });
+      
 
       // Event handler for updates to the list of connected users
       socket.on("connected_users_update", function (data) {
@@ -66,14 +67,14 @@
       });
 
       // Event handler for updating lights, changes background colour of cue light, colour is sent as a hex code, needs to only update if user ID is the same as th user id on client side
-      socket.on("lights_updated", function (data) {
-        console.log("Received update_lights event:", data); // Added for debugging
-        console.log("User ID:", {{ user_id }});
-        if ({{  user_id  }} == data.user_id) {
-          console.log("Colour", data.colour);
-          document.body.style.backgroundColor = data.colour;
+      socket.on("light_status_updated", function (data) {
+        console.log("Received light_status_updated event:", data); // Added for debugging
+        console.log("Updated light status:", data.light_status);
+        if (data.user_id == userId) {
+          document.body.style.backgroundColor = data.light_status;
         }
       });
+      
 
       //event handler for redirecting to show page
       socket.on("start_show", function (data) {

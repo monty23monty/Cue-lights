@@ -145,6 +145,30 @@ body {
     height: 70px;
     /* Adjust the value according to your design */
 }
+#userList button {
+    list-style-type: none;
+    /* remove bullet points */
+    background-color: #4f4f4f;
+    /* example color */
+    color: #ffffff;
+    /* text color */
+    font-size: 1.5em;
+    padding: 20px;
+    /* spacing inside the box */
+    border-radius: 8px;
+    /* rounded corners */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: bold;
+
+    /* Set a minimum width for the user list boxes */
+    min-width: 150px;
+    /* Adjust the value according to your design */
+    height: 70px;
+    /* Adjust the value according to your design */
+}
 
 
 .form-box {

@@ -30,17 +30,15 @@
           <a href="/logout">Logout</a>
         </div>
       </div>
-      <div class="buttons">
-        <button id="btnGo">Go</button>
-        <button id="btnNOGO">No Go</button>
-      </div>
-      <div class="ready">
-        <h1>Ready</h1>
-        <ul id="userStatusListReady"></ul>
-      </div>
-      <div class="not-ready">
-        <h1>Not Ready</h1>
-        <ul id="userStatusListNotReady"></ul>
+      <div class="users">
+        <ul id="userList"></ul>
+        <div id="overlay" style="display: none;">
+            <button id="greenButton">Green</button>
+            <button id="redButton">Red</button>
+            <button id="blackButton">Black</button>
+            <button id="messageButton">Send Message</button>
+            <input id="messageInput" type="text">
+          </div>
       </div>
     </div>
 
@@ -51,11 +49,8 @@
       // Event handler for successful connection
       socket.on("connect", function () {
         console.log("Connected to server.");
-      });
-      const questionTextElement = document.getElementById("questionText");
-      const userAnswerElement = document.getElementById("inp");
-      const submitAnswerBtn = document.getElementById("buttons");
-      const userId = "{{ user_id }}";
+      })
+      
 
       // Join a room
       console.log("Joining room:", "{{ room.code }}"); // Add this line for debugging
@@ -67,47 +62,56 @@
       socket.on("redirect_to_ready_check", function (data) {
         window.location.href = data.url;
       });
-      //debug user update event
-      socket.on("update_user_status", function (data) {
-        console.log("Received update_user_status event:", data);
-        console.log("ready_users:", data.ready_users);
-        console.log("users_not_ready:", data.not_ready_users);
-
-        // Update the list of users who are ready
-        const userStatusListReady = document.getElementById(
-          "userStatusListReady"
-        );
-        userStatusListReady.innerHTML = "";
-        for (const user of data.ready_users) {
-          const li = document.createElement("li");
-          li.appendChild(document.createTextNode(user));
-          userStatusListReady.appendChild(li);
-        }
-        // Update the list of users who are not ready
-        const userStatusListNotReady = document.getElementById(
-          "userStatusListNotReady"
-        );
-        userStatusListNotReady.innerHTML = "";
-        for (const user of data.not_ready_users) {
-          const li = document.createElement("li");
-          li.appendChild(document.createTextNode(user));
-          userStatusListNotReady.appendChild(li);
-        }
-
-      });
 
       // Event handler for disconnection
       socket.on("disconnect", function () {
         console.log("Disconnected from server.");
       });
 
-      // Event handler for updates to the list of connected users
       socket.on("connected_users_update", function (data) {
-        console.log("Received connected_users_update event:", data); // Added for debugging
-
+        console.log("Received connected_users_update event:", data); // For debugging
         console.log("Updated list of connected users:", data.users);
+
+        const userId = data.user_id;
+        
+        // Emit 'fetch_light_status' event with the room code
+        socket.emit("fetch_light_status", { room_code: "{{ room.code }}" });
       });
       
+      socket.on("light_status_fetched", function (data) {
+        console.log("Received light_status_fetched event:", data); // For debugging
+      
+        const users = data.users;
+        const usersList = document.getElementById("userList");
+        usersList.innerHTML = ""; // Clear existing list
+      
+        // Iterate over users and create buttons
+        Object.keys(users).forEach(userId => {
+          const user = users[userId];
+          const button = document.createElement("button");
+          button.appendChild(document.createTextNode(user.username));
+          button.style.backgroundColor = user.light_status;
+      
+          usersList.appendChild(button);
+        });
+        //send light update events for all users with correct colour
+        console.log("Emitting update_light_status event");
+        Object.keys(users).forEach(userId => {
+          const user = users[userId];
+          console.log("with data:", {
+            user_id: userId,
+            room_code: "{{ room.code }}",
+            light_status: user.light_status,
+          });
+          socket.emit("update_light_status", {
+            user_id: userId,
+            room_code: "{{ room.code }}",
+            light_status: user.light_status,
+          });
+        });
+      });
+
+
 
       // go
       const btnGo = document.getElementById("btnGo");
