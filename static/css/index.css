@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@500 &display=swap");
-
 * {
     margin: 0;
     padding: 0;
@@ -815,3 +813,143 @@ input:valid~label {
   .dropup:hover .dropbtn {
     background-color: #2980B9;
   }
+  .overlay-content {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* creates three columns of equal width */
+    grid-template-rows: auto auto auto; /* creates three rows, height adjusts to content */
+    gap: 10px; /* space between grid items */
+    justify-items: center; /* centers items horizontally */
+    align-items: center; /* centers items vertically */
+  }
+  
+  /* Style for all buttons */
+  .button {
+    background-color: rgb(20, 20, 20);
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: large;
+    color: white;
+    padding: 15px 30px;
+    cursor: pointer; /* changes cursor to pointer on hover */
+  }
+  
+  /* Individual button colors */
+  #green-button { background-color: rgb(20, 94, 20); }
+  #red-button   { background-color: rgb(94, 20, 20); }
+  #black-button { background-color: rgb(20, 20, 20); }
+  
+  #messageInput {
+    background-color: rgb(20, 20, 20);
+    grid-column: 1 / -1; /* spans from first to last column */
+    width: calc(100% - 20px); /* full width minus the grid gap */
+    padding: 15px;
+    margin: 0; /* reset any default margins */
+    border-radius: 20px;
+    border: none;
+    font-size: large;
+    color: white;
+  }
+  
+  #messageButton {
+    grid-column: 1 / -1; /* spans from first to last column */
+    max-width: 200px; /* or any width you prefer */
+  }
+  
+  .button:hover, #messageInput:hover, #messageButton:hover {
+    background-color: #0A5368;
+  }
+  
+/*
+
+#green-button {
+    background-color: rgb(20, 94, 20);
+    border: 0;
+    position: absolute;
+    left: 35%;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    width: 200px;
+    height: 100px;
+    font-weight: bold;
+    font-size: large;
+    color: rgb(255, 255, 255);
+}
+
+#green-button:hover {
+    background-color: #0A5368;
+}
+
+#red-button {
+    background-color: rgb(94, 20, 20);
+    border: 0;
+    position: absolute;
+    left: 65%;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    width: 200px;
+    height: 100px;
+    font-weight: bold;
+    font-size: large;
+    color: rgb(255, 255, 255);
+}
+
+#red-button:hover {
+    background-color: #0A5368;
+}
+
+#black-button {
+    background-color: rgb(20, 20, 20);
+    border: 0;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    width: 200px;
+    height: 100px;
+    font-weight: bold;
+    font-size: large;
+    color: rgb(255, 255, 255);
+}
+
+#messageInput {
+    background-color: rgb(20, 20, 20);
+    border: 0;
+    position: absolute;
+    left: 50%;
+    top: 60%;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    width: 500px;
+    height: 100px;
+    font-weight: 1000;
+    font-size: large;
+    color: rgb(255, 255, 255);
+}
+
+#messageButton {
+    background-color: rgb(20, 20, 20);
+    border: 0;
+    position: absolute;
+    left: 50%;
+    top: 70%;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    width: 200px;
+    height: 100px;
+    font-weight: bold;
+    font-size: large;
+    color: rgb(255, 255, 255);
+}
+*/
+
+.message {
+    border: 0;
+    position: absolute;
+    left: 50%;
+    top: 60%;
+    transform: translateX(-50%);
+    font-weight: 1000;
+    font-size: 50px;
+    color: rgb(255, 255, 255);
+}

@@ -1,191 +1,190 @@
 <html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/index.css') }}"
+    />
+  </head>
 
-<head>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
-</head>
-
-<body>
-  <div class="container">
-    <div class="nav">
-      <input type="checkbox" id="nav-check" />
-      <div class="nav-header">
-        <div class="nav-title">{{ username }}</div>
+  <body>
+    <div class="container">
+      <div class="nav">
+        <input type="checkbox" id="nav-check" />
+        <div class="nav-header">
+          <div class="nav-title">{{ username }}</div>
+        </div>
+        <div class="nav-btn">
+          <label for="nav-check">
+            <span></span>
+            <span></span>
+            <span></span>
+          </label>
+        </div>
+        <div class="nav-links">
+          <a
+            href="#"
+            onclick="handleLeaveShow('{{ room.code }}', '{{ room.id }}')"
+            >Leave Show</a
+          >
+          <a href="/rooms/create">New Show</a>
+          <a href="/logout">Logout</a>
+        </div>
       </div>
-      <div class="nav-btn">
-        <label for="nav-check">
-          <span></span>
-          <span></span>
-          <span></span>
-        </label>
-      </div>
-      <div class="nav-links">
-        <a href="#" onclick="handleLeaveShow('{{ room.code }}', '{{ room.id }}')">Leave Show</a>
-        <a href="/rooms/create">New Game</a>
-        <a href="/logout">Logout</a>
-      </div>
-    </div>
-    <div class="users">
-      <ul id="userList"></ul>
-      <div id="overlay" class="overlay">
-        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-        <div class="overlay-content">
-          <button id="greenButton">Green</button>
-          <button id="redButton">Red</button>
-          <button id="blackButton">Black</button>
-          <button id="messageButton">Send Message</button>
-          <input id="messageInput" type="text">
+      <div class="users">
+        <ul id="userList"></ul>
+          <!-- The Overlay for color selection -->
+          <div id="colorOverlay" class="overlay">
+            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()"
+              >&times;</a
+            >
+            <div class="overlay-content">
+              <button
+                class="button"
+                id="green-button"
+                onclick="sendColor('#00ff00')"
+              >
+                Green
+              </button>
+              <button class="button" id="red-button" onclick="sendColor('#ff0000')">
+                Red
+              </button>
+              <button
+                class="button"
+                id="black-button"
+                onclick="sendColor('#000000')"
+              >
+                Black
+              </button>
+              <input
+                id="messageInput"
+                placeholder="Type your message here..."
+                type="text"
+              />
+              <button class="button" id="messageButton" onclick="sendMessage()">
+                Send Message
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script>
-    /* Open when someone clicks on the span element */
-    function openNav() {
-      document.getElementById("myNav").style.width = "100%";
-    }
+    <script>
+      /* Open when someone clicks on the span element */
+      function openNav() {
+        document.getElementById("myNav").style.width = "100%";
+      }
 
-    /* Close when someone clicks on the "x" symbol inside the overlay */
-    function closeNav() {
-      document.getElementById("myNav").style.width = "0%";
-    }
-  </script>
+      /* Close when someone clicks on the "x" symbol inside the overlay */
+      function closeNav() {
+        document.getElementById("myNav").style.width = "0%";
+      }
+    </script>
 
-  <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
-  <!-- Script from scripts folder-->
-  <script>
-    var socket = io();
-    // Event handler for successful connection
-    socket.on("connect", function () {
-      console.log("Connected to server.");
-    })
-
-
-    // Join a room
-    console.log("Joining room:", "{{ room.code }}"); // Add this line for debugging
-    socket.emit("join_room", {
-      room_code: "{{ room.code }}",
-      room_id: "{{ room.id }}", // Room ID is obtained from the server-side Flask variable
-    });
-    // Event handler to redirect to ready_check.html
-    socket.on("redirect_to_ready_check", function (data) {
-      window.location.href = data.url;
-    });
-
-    // Event handler for disconnection
-    socket.on("disconnect", function () {
-      console.log("Disconnected from server.");
-    });
-
-    socket.on("connected_users_update", function (data) {
-      console.log("Received connected_users_update event:", data); // For debugging
-      console.log("Updated list of connected users:", data.users);
-
-      const userId = data.user_id;
-
-      // Emit 'fetch_light_status' event with the room code
-      socket.emit("fetch_light_status", { room_code: "{{ room.code }}" });
-    });
-
-    socket.on("light_status_fetched", function (data) {
-      console.log("Received light_status_fetched event:", data); // For debugging
-
-      const users = data.users;
-      const usersList = document.getElementById("userList");
-      usersList.innerHTML = ""; // Clear existing list
-
-      // Iterate over users and create buttons
-      Object.keys(users).forEach(userId => {
-        const user = users[userId];
-        const button = document.createElement("button");
-        button.appendChild(document.createTextNode(user.username));
-        button.style.backgroundColor = user.light_status;
-
-        const dropup = document.createElement("div");
-        dropup.classList.add("dropup");
-
-        const dropupContent = document.createElement("div");
-        dropupContent.classList.add("dropup-content");
-
-        const textOption = document.createElement("a");
-        textOption.appendChild(document.createTextNode("Text"));
-        textOption.addEventListener("click", function() {
-          // Handle text option click
-        });
-        dropupContent.appendChild(textOption);
-
-        const blackOption = document.createElement("a");
-        blackOption.appendChild(document.createTextNode("Black"));
-        blackOption.addEventListener("click", function() {
-          // Handle black option click
-        });
-        dropupContent.appendChild(blackOption);
-
-        const redOption = document.createElement("a");
-        redOption.appendChild(document.createTextNode("Red"));
-        redOption.addEventListener("click", function() {
-          // Handle red option click
-        });
-        dropupContent.appendChild(redOption);
-
-        const greenOption = document.createElement("a");
-        greenOption.appendChild(document.createTextNode("Green"));
-        greenOption.addEventListener("click", function() {
-          // Handle green option click
-        });
-        dropupContent.appendChild(greenOption);
-
-        dropup.appendChild(dropupContent);
-        button.appendChild(dropup);
-
-        usersList.appendChild(button);
+    <script src="https://cdn.socket.io/4.4.1/socket.io.js"></script>
+    <!-- Script from scripts folder-->
+    <script>
+      var socket = io();
+      // Event handler for successful connection
+      socket.on("connect", function () {
+        console.log("Connected to server.");
       });
-      //send light update events for all users with correct colour
-      console.log("Emitting update_light_status event");
-      Object.keys(users).forEach(userId => {
-        const user = users[userId];
-        console.log("with data:", {
-          user_id: userId,
-          room_code: "{{ room.code }}",
-          light_status: user.light_status,
+
+      // Join a room
+      console.log("Joining room:", "{{ room.code }}"); // Add this line for debugging
+      socket.emit("join_room", {
+        room_code: "{{ room.code }}",
+        room_id: "{{ room.id }}", // Room ID is obtained from the server-side Flask variable
+      });
+      // Event handler to redirect to ready_check.html
+      socket.on("redirect_to_ready_check", function (data) {
+        window.location.href = data.url;
+      });
+
+      // Event handler for disconnection
+      socket.on("disconnect", function () {
+        console.log("Disconnected from server.");
+      });
+
+      socket.on("connected_users_update", function (data) {
+        console.log("Received connected_users_update event:", data); // For debugging
+        console.log("Updated list of connected users:", data.users);
+
+        const userId = data.user_id;
+
+        // Emit 'fetch_light_status' event with the room code
+        socket.emit("fetch_light_status", { room_code: "{{ room.code }}" });
+      });
+
+      socket.on("light_status_fetched", function (data) {
+        console.log("Received light_status_fetched event:", data); // For debugging
+
+        const users = data.users;
+        const usersList = document.getElementById("userList");
+        usersList.innerHTML = ""; // Clear existing list
+
+        // Iterate over users and create buttons
+        Object.keys(users).forEach((userId) => {
+          const user = users[userId];
+          const button = document.createElement("button");
+          button.className = "userButton";
+          button.appendChild(document.createTextNode(user.username));
+          button.style.backgroundColor = user.light_status;
+          button.onclick = (function(username) {
+            return function() {
+              currentUsername = username; // Capture the username in the closure
+              openNav(); // Open the overlay
+            };
+          })(user.username);
+          usersList.appendChild(button);
         });
+        var userId = "{{ user_id }}";
+        //send light update events for all users with correct colour
+        console.log("Emitting update_light_status event");
         socket.emit("update_light_status", {
           user_id: userId,
           room_code: "{{ room.code }}",
-          light_status: user.light_status,
         });
+        });
+      function openNav() {
+        document.getElementById("colorOverlay").style.width = "100%";
+      }
+      // Close the color overlay
+      function closeNav() {
+        document.getElementById("colorOverlay").style.width = "0%";
+      }
+      // Send the color event
+      function sendColor(color) {
+        socket.emit("color_event", { username: currentUsername, color: color, user_id: "{{ user_id }}", room_code: "{{ room.code }}" });
+        closeNav(); // Close the overlay
+      }
+      // Send the message
+      function sendMessage() {
+        var message = document.getElementById("messageInput").value;
+        console.log("The message is: " + message);
+        socket.emit("message_event", {
+          username: currentUsername,
+          message: message,
+          room_code: "{{ room.code }}",
+        });
+        closeNav(); // Close the overlay
+      }
+
+      socket.on("host_reload", function (data) {
+        console.log("reloading")
+        window.location.reload();
       });
-    });
+      function handleLeaveShow(roomCode, roomId) {
+        socket.emit("leave_room", {
+          room_code: roomCode,
+          room_id: roomId,
+        });
+        window.location.href = "{{ url_for('home') }}";
+      }
 
-
-
-    // go
-    const btnGo = document.getElementById("btnGo");
-
-    btnGo.addEventListener("click", function () {
-      console.log("Go clicked");
-      console.log("Emitting start_show event");
-      console.log("with data:", {
-        user_id: userId,
-        room_code: "{{ room.code }}",
+      socket.on("redirect_to_active", function (data) {
+        window.location.href = data.url;
       });
-      socket.emit("start_show", {
-        user_id: userId,
-        room_code: "{{ room.code }}",
-      });
-    });
-
-    socket.on("error", function (data) {
-      console.log("Error:", data.message);
-    });
-    //event handler for redirecting to show page
-    socket.on("start_show", function (data) {
-      window.location.href = data.url;
-    });
-    socket.on("redirect_to_active", function (data) {
-      window.location.href = data.url;
-    });
-  </script>
-</body>
-
+    </script>
+  </body>
 </html>

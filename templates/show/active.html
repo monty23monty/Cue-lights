@@ -26,11 +26,12 @@
             onclick="handleLeaveShow('{{ room.code }}', '{{ room.id }}')"
             >Leave Show</a
           >
-          <a href="/rooms/create">New Game</a>
+          <a href="/rooms/create">New Show</a>
           <a href="/logout">Logout</a>
         </div>
       </div>
       <div class="cue-light">
+        <h1 class="message"></h1>
       </div>
     </div>
 
@@ -69,12 +70,40 @@
       // Event handler for updating lights, changes background colour of cue light, colour is sent as a hex code, needs to only update if user ID is the same as th user id on client side
       socket.on("light_status_updated", function (data) {
         console.log("Received light_status_updated event:", data); // Added for debugging
-        console.log("Updated light status:", data.light_status);
-        if (data.user_id == userId) {
-          document.body.style.backgroundColor = data.light_status;
+    
+        // Extract the users object from the received data
+        var users = data.users;
+    
+        // Select the first div with the class 'container'
+        var containerDiv = document.getElementsByClassName('container')[0];
+    
+        // Check if the users object contains the current userId and containerDiv is found
+        if (users && users[userId] && containerDiv) {
+            console.log("Updated light status for user ID " + userId + ":", users[userId].light_status);
+            containerDiv.style.backgroundColor = users[userId].light_status;
         }
-      });
-      
+    });
+
+    // update message on cue light
+    socket.on("message_status_updated", function (data) {
+        console.log("Received message_status_updated event:", data); // Added for debugging
+    
+        // Extract the users object from the received data
+        var users = data.users;
+    
+        // Select the first h1 with the class 'message'
+        var messageElement = document.getElementsByClassName('message')[0];
+        console.log(users[userId].active_message)
+    
+        // Check if the users object contains the current userId and containerDiv is found
+        if (users && users[userId] && messageElement) {
+            console.log("Updated message status for user ID " + userId + ":", users[userId].active_message);
+            messageElement.innerHTML = users[userId].active_message;
+        }
+        //pause for 15 second
+        setTimeout(function(){ messageElement.innerHTML = ""; }, 15000);
+        //messageElement.innerHTML = "";
+    });
 
       //event handler for redirecting to show page
       socket.on("start_show", function (data) {
@@ -83,6 +112,13 @@
       socket.on("redirect_to_active", function (data) {
         window.location.href = data.url;
       });
+      function handleLeaveShow(roomCode, roomId) {
+        socket.emit("leave_room", {
+          room_code: roomCode,
+          room_id: roomId,
+        });
+        window.location.href = "{{ url_for('home') }}";
+      }
 
       // Event handler for errors
       socket.on("error", function (data) {

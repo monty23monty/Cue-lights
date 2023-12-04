@@ -12,6 +12,16 @@ import eventlet
 import time
 import pandas as pd
 from flask_migrate import Migrate
+import colorlog
+
+# Configure colorlog
+handler = colorlog.StreamHandler()
+handler.setFormatter(colorlog.ColoredFormatter(
+    '%(log_color)s%(levelname)s:%(name)s:%(message)s'))
+
+logger = colorlog.getLogger()
+logger.addHandler(handler)
+logger.setLevel(colorlog.DEBUG)
 
 db = SQLAlchemy()
 app = Flask(__name__)
@@ -48,6 +58,7 @@ class User(db.Model):
     readiness = db.Column(db.String(10), default='Not Ready')
     code = db.Column(db.String(10), nullable=True)
     light_status = db.Column(db.String(10), default='off')
+    active_message = db.Column(db.String(200), default='off')
 
     def __init__(self, username, password, code):
         self.username = username
@@ -225,15 +236,16 @@ def active(code):
     room = Room.query.filter_by(code=code).first()
     user = User.query.get(session["user_id"])
     #set all users to have the light colour black
-    for user in room.connected_users:
-        user.light_status = "#000000"
-        db.session.commit()
+    user.light_status = "#000000"
+    db.session.commit()
     return render_template("show/active.html", room=room, user_id=user.id, username=user.username)
 
 @app.route('/show/active/<code>/host')
 def active_host(code):
     room = Room.query.filter_by(code=code).first()
     user = User.query.get(session["user_id"])
+    for user in room.connected_users:
+        user.light_status = "#000000"
     return render_template("show/active_creator.html", room=room, username=user.username)
 
 @socketio.on('user_ready_status')
@@ -389,22 +401,6 @@ def handle_start_show(data):
         print(f"User {user_id} is starting show in room {room_code}")
         emit("redirect_to_active", {"url": url, "user_id": user_id}, room=room_code)
 
-
-@socketio.on("update_lights")
-#takes data from the host and updates all lights for users in the room
-def update_lights(data):
-    room_code = data["room_code"]
-    user_id = session["user_id"]
-    room = Room.query.filter_by(code=room_code).first()
-    user = User.query.get(user_id)
-    print("Received update_lights event with data:", data)
-    if room and user:
-        print(f"User {user_id} is updating lights in room {room_code}")
-        for user in room.connected_users:
-            user.light_status = data["light_status"]
-            db.session.commit()
-        emit("lights_updated", {"light_status": data["light_status"]}, room=room_code)
-
 @socketio.on("fetch_light_status")
 def fetch_light_status(data):
     room_code = data["room_code"]
@@ -418,6 +414,7 @@ def fetch_light_status(data):
         users = {}
         for user in room.connected_users:
             users[user.id] = {"username": user.username, "light_status": user.light_status}
+            print(f"User {user.id} has light status {user.light_status}")
         emit("light_status_fetched", {"users": users}, room=room_code)
 
 @socketio.on("update_light_status")
@@ -427,13 +424,58 @@ def update_light_status(data):
     room = Room.query.filter_by(code=room_code).first()
     user = User.query.get(user_id)
     print("Received update_light_status event with data:", data)
+    users = {}
     if room and user:
         print(f"User {user_id} is updating light status in room {room_code}")
-        user.light_status = data["light_status"]
-        db.session.commit()
-        emit("light_status_updated", {"user_id": user_id, "light_status": data["light_status"]}, room=room_code)
+        for user in room.connected_users:
+            users[user.id] = {"username": user.username, "light_status": user.light_status}
+            print(f"User {user.id} has light status {user.light_status}")
+        print(f"Emitting light_status_updated event. users: {users}")
+        emit("light_status_updated", {"users": users}, room=room_code)
 
+@socketio.on("color_event")
+def handle_color_event(data):
+    room_code = data["room_code"]
+    user_id = session["user_id"]
+    room = Room.query.filter_by(code=room_code).first()
+    user = User.query.get(user_id)
+    print("Received color_event event with data:", data)
+    if room and user:
+        print(f"User {user_id} is changing light color in room {room_code}")
+        for user in room.connected_users:
+            if user.username == data["username"]:
+                user.light_status = data["color"]
+                db.session.commit()
+                print(f"User {user.id} has light status {user.light_status}")
+        for user in room.connected_users:
+            users = {}
+            users[user.id] = {"username": user.username, "light_status": user.light_status}
+        print(f"Emitting light_status_updated event. users: {users}")
+        emit("light_status_updated", {"users": users}, room=room_code)
+        emit("host_reload", {}, room=room_code)
+
+@socketio.on("message_event")
+def handle_color_event(data):
+    room_code = data["room_code"]
+    user_id = session["user_id"]
+    room = Room.query.filter_by(code=room_code).first()
+    user = User.query.get(user_id)
+    #info logged in terminal
+    logger.debug("Received message_event event with data:", data)
+    if room and user:
+        print(f"User {user_id} is changing light color in room {room_code}")
+        for user in room.connected_users:
+            if user.username == data["username"]:
+                user.active_message = data["message"]
+                db.session.commit()
+                print(f"User {user.id} has message {user.active_message}")
+        for user in room.connected_users:
+            users = {}
+            users[user.id] = {"username": user.username, "active_message": user.active_message}
+        print(f"Emitting message_status_updated event. users: {users}")
+        emit("message_status_updated", {"users": users}, room=room_code)
+        emit("host_reload", {}, room=room_code)
 
 if __name__ == "__main__":
-    eventlet.wsgi.server(eventlet.listen(("172.22.241.64", 5000)), app)
+    eventlet.wsgi.server(eventlet.listen(("192.168.86.94", 5000)), app)
     socketio.run(app)
