@@ -102,6 +102,7 @@
         console.log("Error:", data.message);
       });
       function handleLeaveShow(roomCode, roomId) {
+        console.log("Leaving room:", roomCode);
         socket.emit("leave_room", {
             room_code: roomCode,
             room_id: roomId

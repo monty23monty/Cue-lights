@@ -435,5 +435,5 @@ def update_light_status(data):
 
 
 if __name__ == "__main__":
-    eventlet.wsgi.server(eventlet.listen(("192.168.86.94", 5000)), app)
+    eventlet.wsgi.server(eventlet.listen(("172.22.241.64", 5000)), app)
     socketio.run(app)
